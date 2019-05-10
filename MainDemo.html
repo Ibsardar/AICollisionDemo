@@ -1,0 +1,2173 @@
+<!--
+    Demo
+--->
+
+<!DOCTYPE HTML>
+
+<html lang="en-US">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Demo</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js">
+    </script>
+    <script src = "N2Base.js">
+    </script>
+    <script src = "Nickel2.js">
+    </script>
+    <link href='https://fonts.googleapis.com/css?family=Montserrat:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="MainDemo.css" type="text/css">
+    <!-- removes favicon.ico error -->
+    <link rel="shortcut icon" href="">
+</head>
+
+<body>
+    <div class="Iam">
+        <b>
+            <div class="innerIam">
+            Multi-Agent Behaviour (AI)<br />
+            Pathfinding (AI)<br />
+            Collision Detection (2D)<br /> 
+            Particle Effects (2D)<br />
+            Editable Environment<br />
+            </div>
+        </b>
+        <p> &nbsp Demo, by Ibrahim</p>
+    </div>
+    <div id="description" class="desc">
+
+        <div class="revealer">
+            <b>User actions +</b>
+            <div class="revelation">
+                <br>
+                <ul style="list-style-type:none;">
+                    <li>Left click - start demo/activate a button/place selected item on tile</li>
+                    <li>Right click - remove selected item from tile</li>
+                </ul>
+                <br>
+            </div>
+        </div>
+
+        <br>
+
+        <div class="revealer">
+            <b>Instructions and Information +</b>
+            <div class="revelation">
+                <br>
+                <ul>
+                    <li>Hover over buttons to see action (info text will show in button panel).</li>
+                    <li>If an agent gets stuck, you can use flee or magnet to fix them.</li>
+                    <li>When it comes to shapes, agents will only push; the purpose is to show collision.</li>
+                    <li>Agents will try to avoid walls.</li>
+                    <li>Agents have a mix of BOIDS and other behaviors.</li>
+                    <li>Agents will follow path to end, followed by a secondary behavior (follow cursor/wander)</li>
+                    <li>Pathfinding is not exhausted; only start to end is calculated for demonstration purposes.</li>
+                    <li>Scroll down for more advanced options.</li>
+                    <li>This demo is not fully optimized, it mainly demonstrates many different algorithms used.</li>
+                </ul>
+                <br>
+            </div>
+        </div>
+
+        <br>
+
+        <div class="revealer">
+            <b>Key Implementations +</b>
+            <div class="revelation">
+                <br>
+                <ul>
+                    <li>Combining multiple behaviors in autonomous agents (https://www.red3d.com/cwr/steer/gdc99/)</li>
+                    <li>Various steering behaviors (seek, flee, wander, obstacle avoidance, etc...)</li>
+                    <li>BOIDS steering behavior (align, separate, cohere)</li>
+                    <li>Theta * pathfinding (http://idm-lab.org/bib/abstracts/papers/aaai07a.pdf)</li>
+                    <li>A * pathfinding</li>
+                    <li>Dijkstra pathfinding</li>
+                    <li>Line-of-sight detection (used by Theta * algorithm)</li>
+                    <li>2D collision detection with separating axis theorem (polygon to polygon)</li>
+                    <li>More 2D collision detection with circles, polygons, rays, lines, & points</li>
+                    <li>2D collision resolution (without rotational resolution)</li>
+                    <li>Quadtree for collision optimization</li>
+                    <li>2D Particle effects (in this demo: smoke, fire, jet, falling ice)</li>
+                    <li>Buffer optimization for particles (http://realtimecollisiondetection.net/blog/?p=91)</li>
+                    <li>Custom UI</li>
+                    <li>Debug visualizations (some steering vectors, quadtree, collisions, etc...)</li>
+                    <li>Editable tilemap</li>
+                    <li>Advanced parameter control of most aspects of the demo</li>
+                </ul>
+                <br>
+            </div>
+        </div>
+
+        <br>
+
+        <div class="revealer">
+            <b>Areas of Improvement +</b>
+            <div class="revelation">
+                <br>
+                <ul>
+                    <li>If sight line ends up at intersection of 2 avoid circles, agent may get stuck:
+                        to fix this, we would need to scan all obstacles in scan area and create a new convex avoid surface.</li>
+                    <li>Game objects are quite loaded with functions and variables, causing major slowdowns with just a few objects:
+                        to fix this, we can separate static-abled properties from individual game objects into static classes.</li>
+                    <li>The UX is not as intuitive as it could be, users may get overwhelmed on first look at all the options:
+                        to fix this, we revamp all the options and place them next to similar options, and fit advanced options
+                        in dropdown menus or dialogue boxes that would pause the simulation.</li>
+                    <li>Looking underneath the hood, we see many areas of the code to be quite messy,
+                        this is because this demo and many parts of the Nickel library were hacked together with
+                        little to medium attention to software design, but with greater attention to specific algorithms.
+                        To fix this, we could separate game data and logic, then have an MVC style approach, except the
+                        controller would be split into multiple parts, where each part would handle a crucial portion of
+                        the game loop as well as initialization, and the model would be simple .json files filled with 
+                        object data. So now if we wanted to create a game using the engine, we could simply add modular 
+                        structures to the controller and the view, and easily setup our game data in .json files.
+                        Along with this high level architecture, we should also make use of some design patterns.
+                        For this, we should focus on using the pipeline design pattern with the different parts of the
+                        controller. Using abstract modules will also help to allow more extensibility. Since game objects,
+                        more often than not, are tangled with each other, we can allow users to inject custom scripts into
+                        game objects to manipulate them easily. Since this is JavaScript and not C++, it is too easy to
+                        inject variables and whatnot into JavaScript objects, so we would have to devise a way to discourage
+                        that and utilize the game objects bulit-in script injector system instead. This is a summary of what
+                        the architecture can look like after some improvements.
+                    </li>
+                </ul>
+                <br>
+            </div>
+        </div>
+        <br>
+        <br>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="main">
+    </div>
+
+    <!-- General Advanced Settings -->
+    <div class="slider_container">
+
+        <p>Agent Min Speed:</p>
+        <input type="range" min=0 max=10 value=1
+                onchange="slider_min_spd(this.value)"
+                oninput="show_slider_val(this.value, 'txt_min_spd')">
+        <input id="txt_min_spd" type="text" value="1">
+
+        <p>Agent Max Speed:</p>
+        <input type="range" min=0 max=10 value=3
+                onchange="slider_max_spd(this.value)"
+                oninput="show_slider_val(this.value, 'txt_max_spd')">
+        <input id="txt_max_spd" type="text" value="3">
+        
+        <p>Agent Max Rotation:</p>
+        <input type="range" min=1 max=360 value=5
+                onchange="slider_max_rot(this.value)"
+                oninput="show_slider_val(this.value, 'txt_max_rot')">
+        <input id="txt_max_rot" type="text" value="5">
+        
+        <p>Agent Flee Speed:</p>
+        <input type="range" min=0 max=20 value=3
+                onchange="slider_flee_spd(this.value)"
+                oninput="show_slider_val(this.value, 'txt_flee_spd')">
+        <input id="txt_flee_spd" type="text" value="3">
+        
+        <p>Agent Follow Mouse/Path Speed:</p>
+        <input type="range" min=0 max=20 value=2
+                onchange="slider_follow_spd(this.value)"
+                oninput="show_slider_val(this.value, 'txt_follow_spd')">
+        <input id="txt_follow_spd" type="text" value="2">
+        
+        <p>Agent Wander Speed:</p>
+        <input type="range" min=0 max=20 value=3
+                onchange="slider_wander_spd(this.value)"
+                oninput="show_slider_val(this.value, 'txt_wander_spd')">
+        <input id="txt_wander_spd" type="text" value="3">
+
+        <p>Flee/Magnet Radius:</p>
+        <input type="range" min=0 max=500 value=15
+                onchange="slider_inner_radius(this.value)"
+                oninput="show_slider_val(this.value, 'txt_inner_radius')">
+        <input id="txt_inner_radius" type="text" value="15">
+        
+        <p>Follow Mouse Radius:</p>
+        <input type="range" min=0 max=500 value=300
+                onchange="slider_outer_radius(this.value)"
+                oninput="show_slider_val(this.value, 'txt_outer_radius')">
+        <input id="txt_outer_radius" type="text" value="300">
+    </div>
+
+    <!-- BOIDS Advanced Settings -->
+    <div class="slider_container">
+
+        <p>Agent BOIDS Velocity Weight:</p>
+        <input type="range" min=0 max=20 value=1
+                onchange="slider_boids_total(this.value)"
+                oninput="show_slider_val(this.value, 'txt_boids_total')">
+        <input id="txt_boids_total" type="text" value="1">
+
+        <p>Agent BOIDS Align Weight:</p>
+        <input type="range" min=0 max=20 value=4
+                onchange="slider_boids_align(this.value)"
+                oninput="show_slider_val(this.value, 'txt_boids_align')">
+        <input id="txt_boids_align" type="text" value="4">
+
+        <p>Agent BOIDS Align Radius:</p>
+        <input type="range" min=1 max=500 value=50
+                onchange="slider_boids_align_radius(this.value)"
+                oninput="show_slider_val(this.value, 'txt_boids_aling_radius')">
+        <input id="txt_boids_aling_radius" type="text" value="50">
+
+        <p>Agent BOIDS Separate Weight:</p>
+        <input type="range" min=0 max=20 value=4
+                onchange="slider_boids_sep(this.value)"
+                oninput="show_slider_val(this.value, 'txt_boids_sep')">
+        <input id="txt_boids_sep" type="text" value="4">
+        
+        <p>Agent BOIDS Separate Radius:</p>
+        <input type="range" min=1 max=500 value=20
+                onchange="slider_boids_sep_radius(this.value)"
+                oninput="show_slider_val(this.value, 'txt_boids_sep_radius')">
+        <input id="txt_boids_sep_radius" type="text" value="20">
+
+        <p>Agent BOIDS Cohere Weight:</p>
+        <input type="range" min=0 max=20 value=1
+                onchange="slider_boids_coh(this.value)"
+                oninput="show_slider_val(this.value, 'txt_boids_coh')">
+        <input id="txt_boids_coh" type="text" value="1">
+        
+        <p>Agent BOIDS Cohere Radius:</p>
+        <input type="range" min=1 max=500 value=75
+                onchange="slider_boids_coh_radius(this.value)"
+                oninput="show_slider_val(this.value, 'txt_boids_coh_radius')">
+        <input id="txt_boids_coh_radius" type="text" value="75">
+        
+        <p>Wall/Boundary Avoid Radius:</p>
+        <input type="range" min=0 max=150 value=50
+                onchange="slider_avoid_radius(this.value)"
+                oninput="show_slider_val(this.value, 'txt_avoid_radius')">
+        <input id="txt_avoid_radius" type="text" value="50">
+    </div>
+
+    <!-- Path, Agent Sight, Other Advanced Settings -->
+    <div class="slider_container">
+
+        <p>Agent Sight Length Multiplier:</p>
+        <input type="range" min=1 max=50 value=5
+                onchange="slider_sight(this.value)"
+                oninput="show_slider_val(this.value, 'txt_sight')">
+        <input id="txt_sight" type="text" value="5">
+
+        <div style="text-align: left">
+            <p>Path-Finding Algorithm:</p>
+            <input type="radio" name="pf" id="theta" value=0 checked="true" onclick="radio_pf_method(this.value)">Theta *<br>
+            <input type="radio" name="pf" id="a" value=1 onclick="radio_pf_method(this.value)">A *<br>
+            <input type="radio" name="pf" id="dijkstra" value=2 onclick="radio_pf_method(this.value)">Dijkstra<br>
+        </div>
+
+        <div style="text-align: left">
+            <p>Particle Effects Preset:</p>
+            <input type="radio" name="ptc" id="ptc_none" value=0 onclick="radio_ptc_preset(this.value)">None<br>
+            <input type="radio" name="ptc" id="ptc_1" value=1 checked="true" onclick="radio_ptc_preset(this.value)">Preset #1<br>
+            <input type="radio" name="ptc" id="ptc_2" value=2 onclick="radio_ptc_preset(this.value)">Preset #2<br>
+            <input type="radio" name="ptc" id="ptc_3" value=3 onclick="radio_ptc_preset(this.value)">Preset #3<br>
+            <input type="radio" name="ptc" id="ptc_4" value=4 onclick="radio_ptc_preset(this.value)">Preset #4<br>
+        </div>
+
+        <p>Particle Creation Interval: (milliseconds)</p>
+        <input type="range" min=0 max=100 value=30 step=5
+                onchange="slider_ptc_freq(this.value)"
+                oninput="show_slider_val(this.value, 'txt_ptc_freq')">
+        <input id="txt_ptc_freq" type="text" value="30">
+
+        <p>Particle Lifetime: (milliseconds)</p>
+        <input type="range" min=500 max=5000 value=3000 step=500
+                onchange="slider_ptc_lifetime(this.value)"
+                oninput="show_slider_val(this.value, 'txt_ptc_lifetime')">
+        <input id="txt_ptc_lifetime" type="text" value="3000">
+    </div>
+</body>
+</html>
+
+<script>
+    
+    /*** Layout: ********************************************
+
+    ~~~~~~ NO ARCHITECTURE since this is just a quick hacky demo ~~~~~~~
+    
+    - create UI & option buttons to show/hide some things (*):
+        - description / instructions (outside of game window)
+        - info about each button on top side of screen
+    - grid (non-transformable):
+        - each tile is the same texture
+    - static walls:
+        - create a maze
+        - add dynamic obstacles within the maze:
+            - * collision box of each obstacle
+        - add collision walls around the grid so nothing escapes
+    - start/end indicators
+    - * static, background arrows showing the path found
+    - create a few agents at the start position:
+        - * demo will start via a button of some sort
+        - * small behavior tags
+        - agents will follow path until end
+        - agents will group together (?)
+        - agents will avoid walls and each other but not obstacles
+        - once end is reached, make them separate and wander randomly
+        - * collision boxes of each agent
+        - * options to change behavior from wander to something else
+        - * optional particle system for each agent
+    - * user ability to add/subtract items from grid
+    ********************************************************/
+    
+    //
+    // Game:
+    var Game = new Viewport('main');
+    Game.toggle_image_blur();
+    Game.set_bg_color('white');
+    Game.set_size(800,800);
+    Game.canvas.oncontextmenu = () => false; // disable right click menu
+    
+    //
+    // Data
+    //
+
+    //
+    // Global Vars
+    var is_dbg_collisions = false;
+    var is_dbg_tags = false;
+    var is_dbg_arrows = false;
+    var is_dbg_qtmode = false;
+    var wall_radius = 50;
+    var avoid_sight_length = 5;
+    var pf_type = 0; // 0=Theta*, 1=A*, 2=Dijkstra
+    var agent_spd = {
+        start : 2,
+        low   : 1,
+        med   : 2,
+        high  : 2.5,
+        max   : 3
+    };
+    var agent_acc = {
+        low  : 0.1,
+        med  : 0.5,
+        high : 1.5,
+        max  : 3
+    };
+    var agent_limits = {
+        max_spd : 3,
+        min_spd : 1,
+        max_rot : 5
+    };
+    var boids_rads = {
+        a : 50,
+        c : 75,
+        s : 20
+    };
+    var boids_wts = {
+        a : 4,
+        c : 1,
+        s : 4,
+        t : 1
+    };
+    var bhv_spd = {
+        wander : 4,
+        flee   : 3,
+        follow : 2
+    }
+    var ptc = {
+        preset   : 1,
+        freq     : 35,
+        lifetime : 3000
+    }
+
+    //
+    // UI:
+    var STARTSCREENDATA = {img:'MainDemo_res/start_screen_3.png', w:800, h:600};
+    
+    // (debug btns)
+    var COLLISIONBTNDATA = {img:'MainDemo_res/collision_btn.png', w:80, h:80};
+    var ARROWBTNDATA = {img:'MainDemo_res/arrow_btn.png', w:80, h:80};
+    var TAGBTNDATA = {img:'MainDemo_res/tag_btn.png', w:80, h:80};
+    var QTBTNDATA = {img:'MainDemo_res/qt_btn.png', w:80, h:80};
+    
+    // (actions btns)
+    var PATHBTNDATA = {img:'MainDemo_res/path_btn.png', w:80, h:80}; //not used anymore
+    var WANDERBTNDATA = {img:'MainDemo_res/wander_btn.png', w:80, h:80};
+    var FOLLOWBTNDATA = {img:'MainDemo_res/follow_btn.png', w:80, h:80};
+    var FLEEBTNDATA = {img:'MainDemo_res/flee_btn.png', w:80, h:80};
+    var MAGNETBTNDATA = {img:'MainDemo_res/magnet_btn.png', w:80, h:80};
+    
+    // (item btns)
+    var WALLBTNDATA = {img:'MainDemo_res/wall_btn.png', w:80, h:80};
+    var CIRCLEBTNDATA = {img:'MainDemo_res/circle_btn.png', w:80, h:80};
+    var SQUAREBTNDATA = {img:'MainDemo_res/square_btn.png', w:80, h:80};
+    var PENTAGONBTNDATA = {img:'MainDemo_res/pentagon_btn.png', w:80, h:80};
+    var AGENTBTNDATA = {img:'MainDemo_res/agent_btn.png', w:80, h:80};
+    var STARTBTNDATA = {img:'MainDemo_res/start_btn.png', w:80, h:40};
+    var ENDBTNDATA = {img:'MainDemo_res/end_btn.png', w:80, h:40};
+    var CLEARBTNDATA = {img:'MainDemo_res/clear_btn.png', w:80, h:40};
+    
+    // (btn mask ...to be copied and used over buttons)
+    var BTNMASKDATA = {img:'MainDemo_res/btn_mask.png', w:80, h:80};
+    
+    //
+    // Grid:
+    
+    // (bg layer)
+    var BGDATA = {img:'MainDemo_res/bg_grid.png', w:800, h:600};
+    var BGDATA_2 = {img:'MainDemo_res/bg_grid2.png', w:800, h:600};
+    var BGDATA_3 = {img:'MainDemo_res/bg_grid3.png', w:800, h:600};
+    
+    // (tile layer)
+    var MAPDATA = [];
+    for (var j=0;j<12;j++) {
+        MAPDATA.push([]);
+        for (var i=0;i<16;i++)
+            MAPDATA[j].push(0);
+    }
+    var TILEDATA = {scene:Game,img_data:{w:50,h:50},types:[0]};
+    
+    // (navigation layer)
+    var ARROWDATA = {img:'MainDemo_res/arrow.png',w:10,h:22};
+    var ARROWDATA_2 = {img:'MainDemo_res/arrow4.png',w:22,h:16};
+    var ARROWDATA_3 = {img:'MainDemo_res/arrow5.png',w:10,h:22};
+    var ARROWDATA_4 = {img:'MainDemo_res/arrow6.png',w:34,h:34};
+    var ARROWDATA_5 = {img:'MainDemo_res/arrow7.png',w:20,h:20};
+    var ARROWDATA_6 = {img:'MainDemo_res/arrow8.png',w:16,h:15};
+    var NODEDATA = {
+        type     : "debug",
+        spr_data : ARROWDATA_4
+    };
+    
+    // ...use fields to block cells on navmesh
+    var FIELDDATA_00 = {shape:'rectangle',x:14,y:9,w:2,h:1,blocked:true};
+    var FIELDDATA_01 = {shape:'rectangle',x:13,y:6,w:2,h:1,blocked:true};
+    var FIELDDATA_02 = {shape:'rectangle',x:12,y:1,w:1,h:11,blocked:true};
+    var FIELDDATA_03 = {shape:'rectangle',x:10,y:0,w:1,h:11,blocked:true};
+    var FIELDDATA_04 = {shape:'rectangle',x:8,y:1,w:1,h:1,blocked:true};
+    var FIELDDATA_05 = {shape:'rectangle',x:6,y:5,w:3,h:1,blocked:true};
+    var FIELDDATA_06 = {shape:'rectangle',x:6,y:4,w:3,h:1,blocked:true};
+    var FIELDDATA_07 = {shape:'rectangle',x:6,y:3,w:2,h:1,blocked:true};
+    var FIELDDATA_08 = {shape:'rectangle',x:6,y:1,w:1,h:2,blocked:true};
+    var FIELDDATA_09 = {shape:'rectangle',x:5,y:5,w:1,h:5,blocked:true};
+    var FIELDDATA_10 = {shape:'rectangle',x:6,y:9,w:2,h:1,blocked:true};
+    var FIELDDATA_11 = {shape:'rectangle',x:8,y:8,w:1,h:4,blocked:true};
+    var FIELDDATA_12 = {shape:'rectangle',x:4,y:0,w:1,h:4,blocked:true};
+    var FIELDDATA_13 = {shape:'rectangle',x:3,y:4,w:1,h:5,blocked:true};
+    var FIELDDATA_14 = {shape:'point',x:3,y:11,blocked:true};
+    var NAVDATA = {
+        node_data   : NODEDATA,
+        field_list  : [FIELDDATA_00,FIELDDATA_01,FIELDDATA_02,FIELDDATA_03,
+                       FIELDDATA_04,FIELDDATA_05,FIELDDATA_06,FIELDDATA_07,
+                       FIELDDATA_08,FIELDDATA_09,FIELDDATA_10,FIELDDATA_11,
+                       FIELDDATA_12,FIELDDATA_13,FIELDDATA_14]
+    }
+    
+    // (all layers combined into a grid)
+    var GRIDDATA = {
+        scene           : Game,
+        bg_data         : BGDATA_3,
+        matrix          : MAPDATA,
+        types           : { 0:TILEDATA },
+        navmesh_data    : NAVDATA
+    }
+    
+    //
+    // Walls:
+    var WALLDATA = {img:'MainDemo_res/wall.png',w:50,h:50};
+    var WALLDATA_2 = {img:'MainDemo_res/wall2.png',w:50,h:50};
+    var CIRCLEDATA = {img:'MainDemo_res/circle.png',w:50,h:50};
+    var SQUAREDATA = {img:'MainDemo_res/square.png',w:50,h:50};
+    var PENTAGONDATA = {img:'MainDemo_res/pentagon.png',w:50,h:50};
+    
+    //
+    // Start & End:
+    var STARTDATA = {img:'MainDemo_res/start.png',w:50,h:50};
+    var ENDDATA = {img:'MainDemo_res/end.png',w:50,h:50};
+    
+    //
+    // Agents:
+    var AGENTDATA_PURPLE = {img:'MainDemo_res/agent.png',w:22,h:10};
+    var AGENTDATA_GREEN = {img:'MainDemo_res/agent2.png',w:22,h:10};
+    var AGENTDATA_REDSHIP = {img:'MainDemo_res/agent3.png',w:25,h:32};
+    var AGENTDATA_BLUESHIP = {img:'MainDemo_res/agent4.png',w:25,h:32};
+    var AGENTDATA = {
+        scene:          Game,
+        img_data:       AGENTDATA_PURPLE,
+        hull_exists:    true,
+        hull:           null,
+        max_rot:        agent_limits.max_rot
+    };
+
+    //
+    //  Particles:
+    var JETDATA_PARTICLE = {
+        context                 : Game.context,
+        //image                   : "some_image.ext",
+        shape                   : ParticleBuilder.TYPES.ELLIPSE,
+        enable_translation      : true,
+        enable_rotation         : true,
+        enable_scaling          : false,
+        enable_transparency     : false,
+        enable_fill             : true,
+        enable_stroke           : true
+    }
+    var JETDATA_SYSTEM = {
+        particle_data           : JETDATA_PARTICLE,
+        scene                   : Game,
+        lifetime_mseconds       : Infinity,
+        position                : [0,0],
+        rotation                : 0,
+        scale                   : [1,1],
+        create_amount           : 1,
+        //create_amount_var       : [-3,3],
+        //create_amount_bounds    : [7,11],
+        create_period_mseconds  : 33
+        //create_period_var       : [-3,3],
+        //create_period_bounds    : [1,25]
+    }
+    
+    //
+    // Objects
+    //
+    
+    //
+    // UI:
+    var start_screen = new Sprite(Game, STARTSCREENDATA);
+    var ui_bg = new SimplePoly(Game, [[0,0], [800,0], [800,200], [0,200]], true);
+    ui_bg.set_pos([0,600]);
+    
+    var selector = new SpriteSelector(Game);
+    
+    var divider_top = new SimpleLine(Game, [0,600], [800,600]);
+    var divider_left = new SimpleLine(Game, [200,625], [200,800]);
+    var divider_right = new SimpleLine(Game, [400,625], [400,800]);
+    
+    var btns_left = [
+        new Sprite(Game, COLLISIONBTNDATA),
+        new Sprite(Game, ARROWBTNDATA),
+        new Sprite(Game, TAGBTNDATA),
+        new Sprite(Game, QTBTNDATA)
+    ];
+    var btns_middle = [
+        new Sprite(Game, FLEEBTNDATA),
+        new Sprite(Game, MAGNETBTNDATA),
+        new Sprite(Game, WANDERBTNDATA),
+        new Sprite(Game, FOLLOWBTNDATA)
+    ];
+    var btns_right = [
+        new Sprite(Game, WALLBTNDATA),
+        new Sprite(Game, CIRCLEBTNDATA),
+        new Sprite(Game, SQUAREBTNDATA),
+        new Sprite(Game, PENTAGONBTNDATA),
+        new Sprite(Game, AGENTBTNDATA),
+        new Sprite(Game, STARTBTNDATA),
+        new Sprite(Game, ENDBTNDATA),
+        new Sprite(Game, CLEARBTNDATA)
+    ];
+    
+    var info_left = [
+        new SimpleText(Game,"Show/hide collision boxes and other trace lines","arial",14),
+        new SimpleText(Game,"Show/hide pathfinder arrows","arial",14),
+        new SimpleText(Game,"Show/hide agent behavior tags","arial",14),
+        new SimpleText(Game,"Show/hide quadtree mode","arial",14)
+        //new SimpleText(Game,"Magnet nearby agents to mouse","arial",14)
+    ];
+    var info_middle = [
+        new SimpleText(Game,"Nearby agents flee from mouse","arial",14),
+        new SimpleText(Game,"Magnet nearby agents to mouse","arial",14),
+        new SimpleText(Game,"Final agent behavior to wander","arial",14),
+        new SimpleText(Game,"Final agent behavior to follow mouse","arial",14)
+    ];
+    var info_right = [
+        new SimpleText(Game,"Select the static wall item for adding to the grid","arial",14),
+        new SimpleText(Game,"Select the circle item for adding to the grid","arial",14),
+        new SimpleText(Game,"Select the square item for adding to the grid","arial",14),
+        new SimpleText(Game,"Select the pentagon item for adding to the grid","arial",14),
+        new SimpleText(Game,"Select the agent item for adding to the grid","arial",14),
+        new SimpleText(Game,"Select the start item for changing its position on the grid","arial",14),
+        new SimpleText(Game,"Select the end item for changing its position on the grid","arial",14),
+        new SimpleText(Game,"Clear all items on the grid","arial",14,"red",[0,0],"left","bold")
+    ];
+    
+    var btn_mask_template = new Sprite(Game, BTNMASKDATA, false, null, false);
+    
+    // (mouse radii for debugging)
+    var ms_outer_radius = 300;
+    var ms_inner_radius = 15;
+    var ms_outer_circle = new SimpleCircle(Game, ms_outer_radius);
+    var ms_inner_circle = new SimpleCircle(Game, ms_inner_radius);
+    ms_outer_circle.tag = new SimpleText(Game, "pursue cursor radius", 'arial', 11, 'red');
+    ms_inner_circle.tag = new SimpleText(Game, "???", 'arial', 11, 'red');
+    ms_outer_circle.stroke_color = 'red';
+    ms_inner_circle.stroke_color = 'blue';
+    ms_outer_circle.hide();
+    ms_inner_circle.hide();
+    ms_outer_circle.update_more = function () {
+        this.cx = Game.mouse_x;
+        this.cy = Game.mouse_y;
+        this.radius = ms_outer_radius;
+        if (is_dbg_tags && this.is_visible()) {
+            this.tag.x = this.cx + this.radius + 2;
+            this.tag.y = this.cy;
+            this.tag.update();
+        }
+    }
+    ms_inner_circle.update_more = function () {
+        this.cx = Game.mouse_x;
+        this.cy = Game.mouse_y;
+        this.radius = ms_inner_radius;
+        if (is_dbg_tags && this.is_visible()) {
+            this.tag.x = this.cx + this.radius + 2;
+            this.tag.y = this.cy;
+            this.tag.update();
+        }
+    }
+    
+    //
+    // Grid:
+    var World = new Grid(GRIDDATA);
+    world_bounds = {
+        x:0,
+        y:0,
+        w:Game.get_w(),
+        h:Game.get_h()-200
+    };
+    
+    //
+    // Walls:
+    var wall_template = new Sprite(Game, WALLDATA_2)//WALLDATA);
+    var circle_template = new Sprite(Game, CIRCLEDATA, true, null, false);
+    var square_template = new Sprite(Game, SQUAREDATA);
+    var pentagon_template = new Sprite(Game, PENTAGONDATA, true, null, false);
+
+    var circle_hull = new ColliderHull(circle_template, false);
+    var pentagon_hull = new ColliderHull(pentagon_template, false);
+    
+    var circle_shape = new SimpleCircle(Game, 25);
+    var pentagon_shape = new SimplePoly(Game, [[0,-24], [24,-7], [15,24], [-15,24], [-24, -7]], false);
+    
+    circle_shape.set_tracker(circle_template.get_center());
+    pentagon_shape.set_tracker(pentagon_template.get_center());
+    
+    circle_hull.set_shape(circle_shape);
+    pentagon_hull.set_shape(pentagon_shape);
+    
+    circle_template.set_hull(circle_hull);
+    pentagon_template.set_hull(pentagon_hull);
+    
+    wall_template.hull.shape.stroke_color = 'red';
+    circle_template.hull.shape.stroke_color = 'red';
+    square_template.hull.shape.stroke_color = 'red';
+    pentagon_template.hull.shape.stroke_color = 'red';
+    wall_template.hull.shape.stroke_width = 4;
+    circle_template.hull.shape.stroke_width = 4;
+    square_template.hull.shape.stroke_width = 4;
+    pentagon_template.hull.shape.stroke_width = 4;
+    
+    wall_template.update_more = function () {
+        if (is_dbg_collisions) this.hull.shape.update();
+    }
+    circle_template.update_more = function () {
+        if (is_dbg_collisions) this.hull.shape.update();
+    }
+    square_template.update_more = function () {
+        if (is_dbg_collisions) this.hull.shape.update();
+    }
+    pentagon_template.update_more = function () {
+        if (is_dbg_collisions) this.hull.shape.update();
+    }
+    var east_boundary = new Sprite(Game, {w:100,h:600});
+    var west_boundary = new Sprite(Game, {w:100,h:600});
+    var north_boundary = new Sprite(Game, {w:800,h:100});
+    var south_boundary = new Sprite(Game, {w:800,h:100});
+    
+    east_boundary.bound = function() {};
+    west_boundary.bound = function() {};
+    north_boundary.bound = function() {};
+    south_boundary.bound = function() {};
+    
+    //
+    // Start & End:
+    var start = new Sprite(Game, STARTDATA);
+    var end = new Sprite(Game, ENDDATA);
+
+    //
+    // Particles:
+    var create_jet_particles = function(obj) {
+        var jet_system = new ParticleSystem(JETDATA_SYSTEM);
+        jet_system.parent = obj;
+        if (!ptc.preset) jet_system.hide();
+        jet_system.add_init_feature(function(particle){
+            var p = particle.sys.parent;
+            particle.time_total = ptc.lifetime;
+            particle.size = [3,3];
+            particle.pos = Nickel.UTILITY.midpoint(
+                p.get_bottomleft(),
+                p.get_topleft()
+            );
+            particle.grav = 0;
+            if (ptc.preset != 4) {
+                var rads = (p.get_dir() + 180) / -180 * Math.PI; // opposite dir
+                particle.dx = Math.cos(rads) * p.get_speed() / 4;
+                particle.dy = Math.sin(rads) * p.get_speed() / 4;
+            } else {
+                var rnd_turn = Nickel.UTILITY.random_number(0,90) - 45;
+                var rads = (p.get_dir() + rnd_turn + 180) / -180 * Math.PI; // opposite dir
+                particle.dx = Math.cos(rads) * p.get_speed() / 20 * p.get_speed();
+                particle.dy = Math.sin(rads) * p.get_speed() / 20 * p.get_speed();
+            }
+            if (ptc.preset == 1) {
+                particle.fill = [0, 45, 75, 0.9];
+            } else if (ptc.preset == 2) {
+                particle.fill = [255, 255, 0, 0.9];
+            } else if (ptc.preset == 3) {
+                particle.fill = [200, 45, 255, 0.9];
+            } else if (ptc.preset == 4) {
+                if (p.reached)
+                    particle.fill = [100, 255, 50, 0.9];
+                else
+                    particle.fill = [153, 0, 181, 0.9];
+                particle.size = [1,1];
+            }
+        });
+        jet_system.add_move_feature(function(particle){
+            particle.color = [0, 0, 0, 0];
+            if (is_dbg_collisions)
+                particle.color = [0, 0, 0, 1];
+            if (ptc.preset == 1) {
+                particle.size[0] += 0.2;
+                particle.size[1] += 0.2;
+                particle.pos[0] += particle.dx + (Nickel.UTILITY.random_number(0,1) - 0.5);
+                particle.pos[1] += particle.dy + (Nickel.UTILITY.random_number(0,1) - 0.5);
+                particle.fill[0] += 7;
+                particle.fill[1] += 3;
+                particle.fill[2] += 2;
+                if (particle.size[0] >= 30)
+                    particle.fill[3] -= 0.05;
+                //if (particle.fill[3] < 0.15) particle.fill[3] = 0.15;
+            } else if (ptc.preset == 2) {
+                particle.rot += 0.25;
+                particle.fill[3] -= 0.0025;
+                particle.size[0] += 0.5;
+                particle.size[1] += 0.5;
+                //particle.fill[0] += 0;
+                particle.fill[1] -= 14000 / ptc.lifetime;//3;
+                particle.fill[2] += 3000 / ptc.lifetime;
+                particle.dy -= 0.025;//0.05;
+                particle.pos[0] += particle.dx + (Nickel.UTILITY.random_number(0,1) - 0.5);
+                particle.pos[1] += particle.dy + (Nickel.UTILITY.random_number(0,1) - 0.5);
+                if (particle.size[0] >= ptc.lifetime / 100) {
+                    particle.fill[0] -= 8;
+                    particle.fill[1] -= 8;
+                    particle.fill[2] -= 2;
+                    particle.fill[3] -= 0.01;
+                }
+            } else if (ptc.preset == 3) {
+                particle.size[0] -= 50 / ptc.lifetime;//0.01;
+                particle.size[1] -= 100 / ptc.lifetime;//0.02;
+                if (particle.size[0] < 0.02) particle.size[0] = 0.02;
+                if (particle.size[1] < 0.01) particle.size[1] = 0.01;
+                particle.pos[0] += particle.dx*3;// + (Nickel.UTILITY.random_number(0,1) - 0.5);
+                particle.pos[1] += particle.dy*3;// + (Nickel.UTILITY.random_number(0,1) - 0.5);
+                //particle.fill[0] += 0;
+                //particle.fill[1] += 0;
+                particle.fill[2] -= 5;
+                particle.fill[3] -= 0.01;
+            } else if (ptc.preset == 4) {
+                particle.fill[3] -= 0.005;
+                particle.size[0] += 0.01;
+                particle.size[1] += 0.01;
+                if (particle.time_past >= ptc.lifetime - ptc.lifetime / 5) {
+                    particle.grav += 2; // real gravity would be too many pixels per frame (too fast)
+                    particle.pos[1] += particle.grav;
+                } else if (particle.time_past >= ptc.lifetime - ptc.lifetime / 3) {
+                    particle.fill[0] += 20;
+                    particle.fill[1] += 20;
+                    particle.fill[2] += 25;
+                    particle.size[0] += 0.1;
+                    particle.size[1] += 0.1;
+                } else {
+                    particle.fill[0] += 9000 / ptc.lifetime;
+                    //particle.fill[1] += 0;
+                    particle.fill[2] -= 3000 / ptc.lifetime;
+                    particle.pos[0] += particle.dx + (Nickel.UTILITY.random_number(0,1) - 0.5);
+                    particle.pos[1] += particle.dy + (Nickel.UTILITY.random_number(0,1) - 0.5);
+                }
+            }
+        });
+        return jet_system;
+    }
+    
+    //
+    // Agents:
+    var agent_list = [];
+    var agent_template = new Locomotive(AGENTDATA);
+    agent_template.bound = function() {
+        var cx = this.get_cx();
+        var cy = this.get_cy();
+        if (cx > 800 || cx < 0 || cy > 600 || cy < 0)
+            this.set_center(start.get_cx(), start.get_cy());
+    };
+    
+    for (var i=0; i<5; i++) {
+        var agent = agent_template.copy_base();
+        var rnd_x = Nickel.UTILITY.random_number(750-40,750+40);
+        var rnd_y = Nickel.UTILITY.random_number(550-40,550+40);
+        agent.set_pos2(rnd_x,rnd_y);
+        agent.set_turn(90);
+        agent.set_speed(0);
+        agent_list.push(agent);
+
+        // create agent's own particle system
+        agent.ps = create_jet_particles(agent);
+        
+        // add behavior info text and debugging options
+        agent.tag = new SimpleText(Game, "", 'arial', 11, 'red');
+        agent.hull.shape.stroke_color = 'red';
+        agent.hull.shape.stroke_width = 2;
+        agent.update_more = function() {
+            this.set_rot_max(agent_limits.max_rot);
+            if (started) this.ps.update();
+            if (is_dbg_tags) {
+                this.tag.x = this.get_cx() + 12;
+                this.tag.y = this.get_cy() + 12;
+                this.tag.update();
+            }
+            if (is_dbg_collisions)
+                this.hull.shape.update();
+        }
+    }
+    
+    //
+    // Quadtree:
+    // Quadtree for spatial optimization
+    // parameters: max_objs in cell = 3, max_depth of tree = 4
+    //             bounds of quadtree: 0,0 => 800,600 rect
+    var qt_agts = new QuadTree(3, 4, world_bounds);
+    var qt_walls = new QuadTree(3, 4, world_bounds);
+    var qt_obsts = new QuadTree(3, 4, world_bounds);
+
+    //
+    //  Init Objects
+    //
+    
+    //
+    // UI:
+    start_screen.set_pos(0,0);
+    ui_bg.stroke_color = 'white';
+    ui_bg.stroke_fill = 'white';
+    
+    divider_top.stroke_width = 6;
+    divider_top.stroke_color = "black";
+    divider_left.stroke_width = 6;
+    divider_left.stroke_color = "black";
+    divider_right.stroke_width = 6;
+    divider_right.stroke_color = "black";
+    
+    // (padding 15px)
+    btns_left[0].set_pos(15,625);
+    btns_left[1].set_pos(105,625);
+    btns_left[2].set_pos(15,715);
+    btns_left[3].set_pos(105,715);
+    btns_middle[0].set_pos(215,625);
+    btns_middle[1].set_pos(305,625);
+    btns_middle[2].set_pos(215,715);
+    btns_middle[3].set_pos(305,715);
+    btns_right[0].set_pos(425,625);
+    btns_right[1].set_pos(515,625);
+    btns_right[2].set_pos(605,625);
+    btns_right[3].set_pos(695,625);
+    btns_right[4].set_pos(425,715);
+    btns_right[5].set_pos(515,715); //start
+    btns_right[6].set_pos(515,755); //end
+    btns_right[7].set_pos(695,755); //clear
+    
+    // (init all info)
+    {
+        var init_info = function f(lst) {
+            for (var i in lst) {
+                lst[i].x = 10;
+                lst[i].y = 618;
+                lst[i].hide();
+            }
+        }
+
+        init_info(info_left);
+        init_info(info_right);
+        init_info(info_middle);
+    } //dont remember init_info function
+    
+    btn_mask_template.hide();
+    
+    //
+    // Walls:
+    var wall_list = [];
+    World.nav.apply_to_all(function(node){
+        if (node.blocked) {
+            var _wall = wall_template.copy_base();
+            World.nav.place.at(_wall,[node.x, node.y]);
+            wall_list.push(_wall);
+        }
+    });
+    for (var i in wall_list) {
+        var c = circle_shape.copy_base();
+        c.set_center(wall_list[i].get_center());
+        c.stroke_color = 'red';
+        c.radius = wall_radius;
+        c.stroke_width = 0.75;
+        wall_list[i].push_circle = c;
+    }
+    
+    var obstacle_list = [
+        circle_template.copy_base(),
+        square_template.copy_base(),
+        pentagon_template.copy_base()
+    ];
+    
+    World.nav.place.at(obstacle_list[0], [1,7]);
+    World.nav.place.at(obstacle_list[1], [1,8]);
+    World.nav.place.at(obstacle_list[2], [2,8]);
+    obstacle_list[0].offset_position(25, 0);
+    
+    var boundary_list = [
+        east_boundary, west_boundary,
+        north_boundary, south_boundary
+    ];
+    east_boundary.set_pos(800,0);
+    west_boundary.set_pos(-100,0);
+    north_boundary.set_pos(0,-100);
+    south_boundary.set_pos(0,598);
+    for (var i in boundary_list) {
+        boundary_list[i].hull.shape.stroke_width = 4;
+        boundary_list[i].hull.shape.stroke_color = "red";
+        boundary_list[i].update_more = function() {
+            if (is_dbg_collisions)
+                this.hull.shape.update();
+        }
+    }
+    
+    // create points along the borders of the grid to slightly repel agents
+    var boundary_push_circles = []; // for debugging use
+    var boundary_push_pts = []; // for use with steer funcs
+    var bpc = [-25,-25];
+    while (bpc[0] <= 825) {
+        var c = circle_shape.copy_base();
+        c.stroke_width = 0.75;
+        c.set_center(bpc);
+        c.radius = wall_radius;
+        boundary_push_circles.push(c);
+        boundary_push_pts.push([bpc[0], bpc[1]]);
+        c.stroke_color = 'red';
+        
+        c = circle_shape.copy_base();
+        c.stroke_width = 0.75;
+        c.set_center([bpc[0], bpc[1]+650]);
+        c.radius = wall_radius;
+        boundary_push_circles.push(c);
+        boundary_push_pts.push([bpc[0], bpc[1]+650]);
+        c.stroke_color = 'red';
+        
+        bpc[0] += 50;
+    }
+    bpc = [-25,25];
+    while (bpc[1] < 625) {
+        var c = circle_shape.copy_base();
+        c.stroke_width = 0.75;
+        c.set_center(bpc);
+        c.radius = wall_radius;
+        boundary_push_circles.push(c);
+        boundary_push_pts.push([bpc[0], bpc[1]]);
+        c.stroke_color = 'red';
+        
+        c = circle_shape.copy_base();
+        c.stroke_width = 0.75;
+        c.set_center([bpc[0]+850, bpc[1]]);
+        c.radius = wall_radius;
+        boundary_push_circles.push(c);
+        boundary_push_pts.push([bpc[0]+850, bpc[1]]);
+        c.stroke_color = 'red';
+        
+        bpc[1] += 50;
+    }
+    
+    //
+    // Start & End:
+    var start_pt = [15,11];
+    var end_pt = [1,1];
+    World.nav.place.at(start, start_pt);
+    World.nav.place.at(end, end_pt);
+
+    //
+    //  Advanced GUI Option Functions
+    //
+    var show_slider_val = function(slider_value, text_id) {
+        document.getElementById(text_id).value = slider_value;
+    }
+    var slider_boids_align_radius = function(value) {
+        boids_rads.a = Number.parseInt(value);
+    }
+    var slider_boids_coh_radius = function(value) {
+        boids_rads.c = Number.parseInt(value);
+    }
+    var slider_boids_sep_radius = function(value) {
+        boids_rads.s = Number.parseInt(value);
+    }
+    var slider_boids_align = function(value) {
+        boids_wts.a = Number.parseInt(value);
+    }
+    var slider_boids_coh = function(value) {
+        boids_wts.c = Number.parseInt(value);
+    }
+    var slider_boids_sep = function(value) {
+        boids_wts.s = Number.parseInt(value);
+    }
+    var slider_boids_total = function(value) {
+        boids_wts.t = Number.parseInt(value);
+    }
+    var slider_flee_spd = function(value) {
+        bhv_spd.flee = Number.parseInt(value);
+    }
+    var slider_follow_spd = function(value) {
+        bhv_spd.follow = Number.parseInt(value);
+    }
+    var slider_wander_spd = function(value) {
+        bhv_spd.wander = Number.parseInt(value);
+    }
+    var slider_sight = function(value) {
+        avoid_sight_length = Number.parseInt(value);
+    }
+    var slider_inner_radius = function(value) {
+        ms_inner_radius = Number.parseInt(value);
+    }
+    var slider_outer_radius = function(value) {
+        ms_outer_radius = Number.parseInt(value);
+    }
+    var slider_avoid_radius = function(value) {
+        wall_radius = Number.parseInt(value);
+        for (var i in boundary_push_circles)
+            boundary_push_circles[i].radius = Number.parseInt(value);
+        for (var i in wall_list)
+            wall_list[i].push_circle.radius = Number.parseInt(value);
+    }
+    var slider_max_rot = function(value) {
+        agent_limits.max_rot = Number.parseInt(value);
+        AGENTDATA.max_rot = Number.parseInt(value);
+    }
+    var slider_max_spd = function(value) {
+        agent_limits.max_spd = Number.parseInt(value);
+    }
+    var slider_min_spd = function(value) {
+        agent_limits.min_spd = Number.parseInt(value);
+    }
+    var radio_pf_method = function(value) {
+        pf_type = Number.parseInt(value);
+        btn_calculate_path();
+    }
+    var radio_ptc_preset = function(value) {
+        ptc.preset = Number.parseInt(value);
+        if (ptc.preset) {
+            for (var i in agent_list)
+                agent_list[i].ps.show();
+        }
+        if (ptc.preset == 1) {
+            JETDATA_SYSTEM.create_amount = 1;
+            JETDATA_PARTICLE.shape = ParticleBuilder.TYPES.ELLIPSE;
+        } else if (ptc.preset == 2) {
+            JETDATA_SYSTEM.create_amount = 2;
+            JETDATA_PARTICLE.shape = ParticleBuilder.TYPES.RECTANGLE;
+        } else if (ptc.preset == 3) {
+            JETDATA_SYSTEM.create_amount = 1;
+            JETDATA_PARTICLE.shape = ParticleBuilder.TYPES.ELLIPSE;
+        } else if (ptc.preset == 4) {
+            JETDATA_SYSTEM.create_amount = 5;
+            JETDATA_PARTICLE.shape = ParticleBuilder.TYPES.ELLIPSE;
+        } else {
+            for (var i in agent_list)
+                agent_list[i].ps.hide();
+        }
+        for (var i in agent_list) {
+            agent_list[i].ps.amount = JETDATA_SYSTEM.create_amount;
+        }
+    }
+    var slider_ptc_freq = function(value) {
+        ptc.freq = Number.parseInt(value);
+        JETDATA_SYSTEM.create_period_mseconds = ptc.freq;
+        for (var i in agent_list) {
+            agent_list[i].ps.period = ptc.freq;
+        }
+    }
+    var slider_ptc_lifetime = function(value) {
+        ptc.lifetime = Number.parseInt(value);
+    }
+
+    //
+    //  Functions
+    //
+    
+    // (16 possible buttons)
+    var sticky_highlights = [];
+    for (var i=0; i<16; i++) {
+        sticky_highlights[i] = btn_mask_template.copy_base();
+        sticky_highlights[i].hide();
+    }
+    
+    // button functions (algorithm: theta * star)
+    // ...also makes all agents purple
+    var btn_calculate_path = function() {
+        if (pf_type == 0) {
+            Pathfinder.theta_star(Game,
+                                  World,
+                                  end_pt,
+                                  start_pt,
+                                  World.nav.w-1,
+                                  0, 0,
+                                  World.nav.h-1,
+                                  wall_list,
+                                  true); //allow diagonal
+        } else if (pf_type == 1) {
+            Pathfinder.a_star(World.nav,
+                              end_pt,
+                              start_pt,
+                              World.nav.w-1,
+                              0, 0,
+                              World.nav.h-1,
+                              true); //allow diagonal
+        } else if (pf_type == 2) {
+            Pathfinder.dijkstra(World.nav,
+                                     end_pt,
+                                     start_pt,
+                                     World.nav.w-1,
+                                     0, 0,
+                                     World.nav.h-1,
+                                     true); //allow diagonal
+        }
+    }
+
+    // freedom func (basically no behavior)
+    var freedom = function(agent) {
+        agent.tag.text = "";
+        return [0,0];
+    }
+    
+    // wander func
+    var wander = function(agent) {
+        agent.tag.text += "wandering, ";
+        return agent.wander(bhv_spd.wander, 90);
+    }
+    
+    // follow mouse func
+    var follow_mouse = function(agent, r=ms_outer_radius, r2=0) {
+        ms_outer_circle.tag.text = "pursue cursor radius";
+        var ms = [Game.mouse_x,Game.mouse_y];
+        var c = agent.get_center();
+        var dist = Pathfinder.distance_to(c, ms);
+        if (dist <= r && dist > r2) {
+            agent.tag.text += "pursuing cursor, ";
+            return agent.seek3(ms, bhv_spd.follow);
+            //return agent.seek(ms, bhv_spd.follow, agent_acc.med);
+        } else {
+            agent.tag.text += "looking for cursor, ";
+            return [0,0];
+        }
+    }
+    
+    // flee mouse func
+    var flee_mouse = function(agent, r=ms_inner_radius) {
+        ms_inner_circle.tag.text = "flee cursor radius";
+        var ms = [Game.mouse_x,Game.mouse_y];
+        var flee_vec = agent.flee2(ms, r, bhv_spd.flee);
+        if (flee_vec[0] && flee_vec[1])
+            agent.tag.text += "fleeing cursor, ";
+        return flee_vec;
+    }
+    
+    // magnet to mouse func
+    var magnet_to_mouse = function(agent, r=ms_inner_radius) {
+        ms_inner_circle.tag.text = "magnet to cursor radius";
+        var ms = [Game.mouse_x,Game.mouse_y];
+        var dist = Pathfinder.distance_to(agent.get_center(), ms);
+        if (dist <= r && dist > 5) {
+            agent.set_center(ms[0], ms[1]);
+            return true;
+        }
+        return false;
+    }
+    
+    // toggle btn hover effect func
+    var toggle_btn_highlight = function(btn) {
+        if (btn.get_id() == btns_right[5].get_id() ||
+            btn.get_id() == btns_right[6].get_id() ||
+            btn.get_id() == btns_right[7].get_id()) {
+            btn_mask_template.set_h(40);
+        } else {
+            btn_mask_template.set_h(80);
+        }
+        btn_mask_template.set_pos(btn.x, btn.y);
+        btn_mask_template.show();
+    }
+
+    // returns the cooresponding node in a nav from a pt
+    var get_node = function(pt) {
+        var x = pt[0] / 50;
+        var y = pt[1] / 50;
+        return World.nav.at([Math.ceil(x-1), Math.ceil(y-1)]);
+    }
+
+    // place selected sprite into World
+    var place_item = function() {
+        if (placement.get_id() == start.get_id()) {
+            var n = get_node([Game.mouse_x, Game.mouse_y]);
+            if (!n.blocked &&
+                (n.x != end_pt[0] || n.y != end_pt[1])) {
+                start_pt = n.pos();
+                World.nav.place.at(start, start_pt);
+                btn_calculate_path();
+            }
+        } else if (placement.get_id() == end.get_id()) {
+            var n = get_node([Game.mouse_x, Game.mouse_y]);
+            if (!n.blocked &&
+                (start_pt[0] != n.x || start_pt[1] != n.y)) {
+                end_pt = n.pos();
+                World.nav.place.at(end, end_pt);
+                btn_calculate_path();
+            }
+        } else if (placement.get_id() == wall_template.get_id()) {
+            var n = get_node([Game.mouse_x, Game.mouse_y]);
+            if (!n.blocked) {
+                n.blocked = true;
+                var wall = wall_template.copy_base();
+                World.nav.place.at(wall,[n.x, n.y]);
+                wall_list.push(wall);
+                var c = circle_shape.copy_base();
+                c.set_center(wall.get_center());
+                c.stroke_color = 'red';
+                c.radius = wall_radius;
+                c.stroke_width = 0.75;
+                wall.push_circle = c;
+                btn_calculate_path();
+            }
+        } else if (placement.get_id() == agent_template.get_id()) {
+            var n = get_node([Game.mouse_x, Game.mouse_y]);
+            if (!n.blocked) {
+                var agent = agent_template.copy_base();
+                agent.set_center(Game.mouse_x, Game.mouse_y);
+                agent.set_turn(90);
+                agent.set_speed(agent_spd.start);
+                agent.reached = false;
+                agent.is_separate = true;
+                agent_list.push(agent);
+                agent.tag = new SimpleText(Game, "", 'arial', 11, 'red');
+                agent.hull.shape.stroke_color = 'red';
+                agent.hull.shape.stroke_width = 2;
+                agent.ps = create_jet_particles(agent);
+                agent.update_more = function() {
+                    this.set_rot_max(agent_limits.max_rot);
+                    if (started) this.ps.update();
+                    if (is_dbg_tags) {
+                        this.tag.x = this.get_cx() + 12;
+                        this.tag.y = this.get_cy() + 12;
+                        this.tag.update();
+                    }
+                    if (is_dbg_collisions)
+                        this.hull.shape.update();
+                }
+            }
+        } else {
+            var n = get_node([Game.mouse_x, Game.mouse_y]);
+            if (!n.blocked) {
+                var obstacle = placement.copy_base();
+                obstacle.set_center(Game.mouse_x, Game.mouse_y);
+                obstacle_list.push(obstacle);
+            }
+        }
+    }
+
+    // remove given sprite from its corresponding list
+    var remove_item = function(spr, lst, is_blockade=false) {
+        var i = -1;
+        for (var j in lst)
+            if (lst[j].get_id() == spr.get_id()) {
+                i = j;
+                break;
+            }
+        lst.splice(i, 1);
+        if (is_blockade) {
+            var n = get_node(spr.get_center());
+            n.blocked = false;
+            btn_calculate_path();
+        }
+    }
+    
+    // toggle btn click effect func (...long)
+    var toggle_btn = function(lst_i, btn_i, btn) {
+        switch (lst_i) {
+            case 0: {
+                // debugging options
+                switch (btn_i) {
+                    case 0: {
+                        // debug collision markings
+                        var j = 0;
+                        if (!btn.is_clicked) {
+                            btn.is_clicked = true;
+                            sticky_highlights[j].set_pos(btn.x, btn.y);
+                            sticky_highlights[j].show();
+                            is_dbg_collisions = true;
+                        } else {
+                            btn.is_clicked = false;
+                            sticky_highlights[j].hide();
+                            is_dbg_collisions = false;
+                        }
+                        break;
+                    }
+                    case 1: {
+                        // debug pathfinder arrows
+                        var j = 1;
+                        if (!btn.is_clicked) {
+                            btn.is_clicked = true;
+                            sticky_highlights[j].set_pos(btn.x, btn.y);
+                            sticky_highlights[j].show();
+                            is_dbg_arrows = true;
+                            World.nav.apply_to_all(function(node){ node.spr.show(); });
+                        } else {
+                            btn.is_clicked = false;
+                            sticky_highlights[j].hide();
+                            is_dbg_arrows = false;
+                            World.nav.apply_to_all(function(node){ node.spr.hide(); });
+                        }
+                        break;
+                    }
+                    case 2: {
+                        // debug behavior tags
+                        var j = 2;
+                        if (!btn.is_clicked) {
+                            btn.is_clicked = true;
+                            sticky_highlights[j].set_pos(btn.x, btn.y);
+                            sticky_highlights[j].show();
+                            is_dbg_tags = true;
+                        } else {
+                            btn.is_clicked = false;
+                            sticky_highlights[j].hide();
+                            is_dbg_tags = false;
+                        }
+                        break;
+                    }
+                    case 3: {
+                        // debug quadtree mode
+                        var j = 3;
+                        if (!btn.is_clicked) {
+                            btn.is_clicked = true;
+                            sticky_highlights[j].set_pos(btn.x, btn.y);
+                            sticky_highlights[j].show();
+                            is_dbg_qtmode = true;
+                        } else {
+                            btn.is_clicked = false;
+                            sticky_highlights[j].hide();
+                            is_dbg_qtmode = false;
+                        }
+                        break;
+                    }
+                }
+                break;
+            } case 1: {
+                // action options
+                switch (btn_i) {
+                    case 0: {
+                        var j = 4;
+                        if (!btn.is_clicked) {
+                            btn.is_clicked = true;
+                            sticky_highlights[j].set_pos(btn.x, btn.y);
+                            sticky_highlights[j].show();
+                            inner_behavior = flee_mouse;
+                            sticky_highlights[5].hide();//hide magnet btn highlight
+                            btns_middle[1].is_clicked = false;//un-click magnet btn
+                        }
+                        break;
+                    }
+                    case 1: {
+                        // debug agent-magnet cursor
+                        var j = 5;
+                        if (!btn.is_clicked) {
+                            btn.is_clicked = true;
+                            sticky_highlights[j].set_pos(btn.x, btn.y);
+                            sticky_highlights[j].show();
+                            inner_behavior = magnet_to_mouse;
+                            sticky_highlights[4].hide();//hide flee btn highlight
+                            btns_middle[0].is_clicked = false;//un-click flee btn
+                        }
+                        break;
+                    }
+                    case 2: {
+                        // action agent end behavior wander
+                        var j = 6;
+                        if (!btn.is_clicked) {
+                            btn.is_clicked = true;
+                            sticky_highlights[j].set_pos(btn.x, btn.y);
+                            sticky_highlights[j].show();
+                            reached_behavior = wander;
+                            sticky_highlights[7].hide();//hide follow btn highlight
+                            btns_middle[3].is_clicked = false;//un-click follow btn
+                            ms_outer_circle.hide();
+                        } else {
+                            btn.is_clicked = false;
+                            sticky_highlights[j].hide();
+                            reached_behavior = freedom;
+                        }
+                        break;
+                    }
+                    case 3: {
+                        // action agent end behavior follow
+                        var j = 7;
+                        if (!btn.is_clicked) {
+                            btn.is_clicked = true;
+                            sticky_highlights[j].set_pos(btn.x, btn.y);
+                            sticky_highlights[j].show();
+                            reached_behavior = follow_mouse;
+                            sticky_highlights[6].hide();//hide wander btn highlight
+                            btns_middle[2].is_clicked = false;//un-click wander btn
+                            ms_outer_circle.show();
+                        } else {
+                            btn.is_clicked = false;
+                            sticky_highlights[j].hide();
+                            reached_behavior = freedom;
+                            ms_outer_circle.hide();
+                        }
+                        break;
+                    }
+                }
+                break;
+            } case 2: {
+                // placement options
+                switch (btn_i) {
+                    case 0: {
+                        // placement wall
+                        var j = 8;
+                        if (!btn.is_clicked) {
+                            //hide other placement highlights
+                            for (var k=8; k<sticky_highlights.length; k++)
+                                sticky_highlights[k].hide();
+                            
+                            //un-click other placement btns
+                            for (var k=0; k<btns_right.length; k++)
+                                btns_right[k].is_clicked = false;
+
+                            btn.is_clicked = true;
+                            sticky_highlights[j].set_pos(btn.x, btn.y);
+                            sticky_highlights[j].show();
+                            placement = wall_template;
+                        }
+                        break;
+                    }
+                    case 1: {
+                        // placement circle
+                        var j = 9;
+                        if (!btn.is_clicked) {
+                            //hide other placement highlights
+                            for (var k=8; k<sticky_highlights.length; k++)
+                                sticky_highlights[k].hide();
+                            
+                            //un-click other placement btns
+                            for (var k=0; k<btns_right.length; k++)
+                                btns_right[k].is_clicked = false;
+
+                            btn.is_clicked = true;
+                            sticky_highlights[j].set_pos(btn.x, btn.y);
+                            sticky_highlights[j].show();
+                            placement = circle_template;
+                        }
+                        break;
+                    }
+                    case 2: {
+                        // placement square
+                        var j = 10;
+                        if (!btn.is_clicked) {
+                            //hide other placement highlights
+                            for (var k=8; k<sticky_highlights.length; k++)
+                                sticky_highlights[k].hide();
+                            
+                            //un-click other placement btns
+                            for (var k=0; k<btns_right.length; k++)
+                                btns_right[k].is_clicked = false;
+
+                            btn.is_clicked = true;
+                            sticky_highlights[j].set_pos(btn.x, btn.y);
+                            sticky_highlights[j].show();
+                            placement = square_template;
+                        }
+                        break;
+                    }
+                    case 3: {
+                        // placement pentagon
+                        var j = 11;
+                        if (!btn.is_clicked) {
+                            //hide other placement highlights
+                            for (var k=8; k<sticky_highlights.length; k++)
+                                sticky_highlights[k].hide();
+                            
+                            //un-click other placement btns
+                            for (var k=0; k<btns_right.length; k++)
+                                btns_right[k].is_clicked = false;
+
+                            btn.is_clicked = true;
+                            sticky_highlights[j].set_pos(btn.x, btn.y);
+                            sticky_highlights[j].show();
+                            placement = pentagon_template;
+                        }
+                        break;
+                    }
+                    case 4: {
+                        // placement agent
+                        var j = 12;
+                        if (!btn.is_clicked) {
+                            //hide other placement highlights
+                            for (var k=8; k<sticky_highlights.length; k++)
+                                sticky_highlights[k].hide();
+                            
+                            //un-click other placement btns
+                            for (var k=0; k<btns_right.length; k++)
+                                btns_right[k].is_clicked = false;
+
+                            btn.is_clicked = true;
+                            sticky_highlights[j].set_pos(btn.x, btn.y);
+                            sticky_highlights[j].show();
+                            placement = agent_template;
+                        }
+                        break;
+                    }
+                    case 5: {
+                        // placement start
+                        var j = 13;
+                        if (!btn.is_clicked) {
+                            //hide other placement highlights
+                            for (var k=8; k<sticky_highlights.length; k++)
+                                sticky_highlights[k].hide();
+                            
+                            //un-click other placement btns
+                            for (var k=0; k<btns_right.length; k++)
+                                btns_right[k].is_clicked = false;
+
+                            btn.is_clicked = true;
+                            sticky_highlights[j].set_pos(btn.x, btn.y);
+                            sticky_highlights[j].set_h(40);
+                            sticky_highlights[j].show();
+                            placement = start;
+                        }
+                        break;
+                    }
+                    case 6: {
+                        // placement end
+                        var j = 14;
+                        if (!btn.is_clicked) {
+                            //hide other placement highlights
+                            for (var k=8; k<sticky_highlights.length; k++)
+                                sticky_highlights[k].hide();
+                            
+                            //un-click other placement btns
+                            for (var k=0; k<btns_right.length; k++)
+                                btns_right[k].is_clicked = false;
+
+                            btn.is_clicked = true;
+                            sticky_highlights[j].set_pos(btn.x, btn.y);
+                            sticky_highlights[j].set_h(40);
+                            sticky_highlights[j].show();
+                            placement = end;
+                        }
+                        break;
+                    }
+                    case 7: {
+                        // placement end
+                        var j = 15;
+                        
+                        // remove all items
+                        for (var k in wall_list) {
+                            var n = get_node(wall_list[k].get_center());
+                            if (n.blocked)
+                                n.blocked = false;
+                        }
+                        wall_list = [];
+                        obstacle_list = [];
+                        agent_list = [];
+
+                        // re-calc path
+                        btn_calculate_path();
+                        break;
+                    }
+                }
+            }
+            break;
+        }//end switch
+    }
+    
+    // fill a quadtree with all items in a sprite-list
+    var fill_qt = function(qt, lst) {
+        for (var i in lst) {
+            var o = lst[i];
+            qt.in(o, [o.get_left(), o.get_top()],
+                  [o.get_w_bound(), o.get_h_bound()]);
+        }
+    }
+
+    // get a list of spatial items from quadtree based on a sprite
+    var get_qt = function(qt, spr) {
+        return qt.get([spr.get_left(), spr.get_top()],
+                      [spr.get_w_bound(), spr.get_h_bound()]);
+    }
+
+    //
+    //  Other preparations
+    //
+
+    // indicates if the Demo has been started
+    var started = false;
+
+    // indicates if the Demo has been initiated
+    var init = false;
+    
+    // set reached outer behavior, inner behavior
+    var reached_behavior = null;
+    var inner_behavior = null;
+                
+    // will track if agent was in a collision last frame
+    var in_collision = false;
+    
+    // item to be placed
+    var placement = null;
+
+    // behavior to be called after reaching end
+    var reached_behavior = null;
+    
+    // pre-run the path finder
+    btn_calculate_path();
+
+    //
+    // Game Loop:
+    Nickel.update = function() {
+        
+        // Clear canvas
+        Game.clear();
+            
+        // Demo started...
+        if (started) {
+            // init some things
+            if (!init) {
+                ms_inner_circle.show();
+                for (var i in btns_left) btns_left[i].is_clicked = false;
+                for (var i in btns_middle) btns_middle[i].is_clicked = false;
+                for (var i in btns_right) btns_right[i].is_clicked = false;
+                btns_left[1].is_clicked = true;
+                toggle_btn(0, 1, btns_left[1]); // default: no arrows
+                toggle_btn(1, 2, btns_middle[2]); // default: wander
+                toggle_btn(1, 0, btns_middle[0]); // default: flee
+                toggle_btn(2, 0, btns_right[0]); // default: wall
+                for (var i in agent_list) {
+                    agent_list[i].set_speed(agent_spd.start);
+                    agent_list[i].reached = false;
+                    agent_list[i].is_separate = true;
+                }
+                init = true;
+            }
+
+            //
+            //  Collisions (with quadtree optimization)
+            //
+
+            // reset quadtrees
+            qt_agts.clear();
+            qt_walls.clear();
+            qt_obsts.clear();
+
+            // fill up quadtrees
+            fill_qt(qt_walls, wall_list);
+            fill_qt(qt_agts, agent_list);
+            fill_qt(qt_obsts, obstacle_list);
+            
+            // all collision boxes start red
+            for (var i in wall_list) wall_list[i].hull.shape.stroke_color = 'red';
+            for (var i in agent_list) agent_list[i].hull.shape.stroke_color = 'red';
+            for (var i in obstacle_list) obstacle_list[i].hull.shape.stroke_color = 'red';
+            for (var i in boundary_list) boundary_list[i].hull.shape.stroke_color = 'red';
+            
+            // color of colliding collision box
+            var hit_clr = '#00ffff'; //cyan
+            
+            // all agents assume no collision
+            for (var i in agent_list) agent_list[i].in_collision = false;
+            
+            // resolve obstacle v agent collisions
+            for (var i in obstacle_list) {
+                var qt_lst = get_qt(qt_agts, obstacle_list[i]);
+                for (var j in qt_lst) {
+                    if (qt_lst[j].entity.resolve_with(obstacle_list[i],false,true,true,1,5,
+                                                   qt_lst[j].entity.get_velocity(),
+                                                   obstacle_list[i].get_velocity() )){
+                        qt_lst[j].entity.hull.shape.stroke_color = hit_clr;
+                        obstacle_list[i].hull.shape.stroke_color = hit_clr;
+                        qt_lst[j].entity.in_collision = true;
+                    }
+                }
+            }
+            
+            // resolve agent v wall collisions
+            for (var i in agent_list) {
+                var qt_lst = get_qt(qt_walls, agent_list[i]);
+                for (var j in qt_lst) {
+                    if (agent_list[i].resolve_with(qt_lst[j].entity,false,true,true,0,10,
+                                                   agent_list[i].get_velocity(),
+                                                   qt_lst[j].entity.get_velocity() )){
+                        agent_list[i].hull.shape.stroke_color = hit_clr;
+                        qt_lst[j].entity.hull.shape.stroke_color = hit_clr;
+                        agent_list[i].in_collision = true;
+                    }
+                }
+            }
+            
+            // resolve obstacle v wall collisions
+            for (var i in obstacle_list) {
+                var qt_lst = get_qt(qt_walls, obstacle_list[i]);
+                for (var j in qt_lst) {
+                    if (qt_lst[j].entity.resolve_with(obstacle_list[i],false,true,true,10,0,
+                                                  qt_lst[j].entity.get_velocity(),
+                                                  obstacle_list[i].get_velocity() )){
+                        qt_lst[j].entity.hull.shape.stroke_color = hit_clr;
+                        obstacle_list[i].hull.shape.stroke_color = hit_clr;
+                    }
+                }
+            }
+
+            // resolve obstacle v obstacle collisions
+            for (var i in obstacle_list) {
+                var qt_lst = get_qt(qt_obsts, obstacle_list[i]);
+                for (var j in qt_lst) {
+                    if (i == j) continue;
+                    if (obstacle_list[i].resolve_with(qt_lst[j].entity,false,true,true,1,1,
+                                                  obstacle_list[i].get_velocity(),
+                                                  qt_lst[j].entity.get_velocity() )){
+                        obstacle_list[i].hull.shape.stroke_color = hit_clr;
+                        qt_lst[j].entity.hull.shape.stroke_color = hit_clr;
+                    }
+                }
+            }
+            
+            // resolve boundary v all collisions
+            for (var i in boundary_list) {
+                for (var j in obstacle_list) {
+                    if (boundary_list[i].resolve_with(obstacle_list[j],false,true,true,10,0,
+                                                   boundary_list[i].get_velocity(),
+                                                   obstacle_list[j].get_velocity() )){
+                        boundary_list[i].hull.shape.stroke_color = hit_clr;
+                        obstacle_list[j].hull.shape.stroke_color = hit_clr;
+                    }
+                }
+            }
+            for (var i in agent_list) {
+                for (var j in boundary_list) {
+                    if (agent_list[i].resolve_with(boundary_list[j],false,true,true,0,10,
+                                                   agent_list[i].get_velocity(),
+                                                   boundary_list[j].get_velocity() )){
+                        agent_list[i].hull.shape.stroke_color = hit_clr;
+                        boundary_list[j].hull.shape.stroke_color = hit_clr;
+                        agent_list[i].in_collision = true;
+                    }
+                }
+            }
+            
+            //
+            //  Buttons
+            //
+            
+            // get which button mouse is currently over
+            var curr_btn_i = -1; // default invalid index
+            var curr_btn_lst = null; // default no list
+            var curr_btn_lst_i = -1; // default invalid index
+            for (var i in btns_left) {
+                if (btns_left[i].colliding_with([Game.mouse_x, Game.mouse_y])) {
+                    curr_btn_i = i;
+                    curr_btn_lst = btns_left;
+                    curr_btn_lst_i = 0;
+                    break;
+                }
+            }
+            if (curr_btn_i < 0) {
+                for (var i in btns_middle) {
+                    if (btns_middle[i].colliding_with([Game.mouse_x, Game.mouse_y])) {
+                        curr_btn_i = i;
+                        curr_btn_lst = btns_middle;
+                        curr_btn_lst_i = 1;
+                        break;
+                    }
+                }
+            }
+            if (curr_btn_i < 0) {
+                for (var i in btns_right) {
+                    if (btns_right[i].colliding_with([Game.mouse_x, Game.mouse_y])) {
+                        curr_btn_i = i;
+                        curr_btn_lst = btns_right;
+                        curr_btn_lst_i = 2;
+                        break;
+                    }
+                }
+            }
+            curr_btn_i = Number.parseInt(curr_btn_i);
+            
+            // get if mouse clicked
+            var is_clicked = Game.mouse_upped;
+            Game.reset_mouse_upped();
+            
+            // handle captions
+            for (var i in info_left) info_left[i].hide();
+            for (var i in info_middle) info_middle[i].hide();
+            for (var i in info_right) info_right[i].hide();
+            if (curr_btn_lst == btns_left) info_left[curr_btn_i].show();
+            if (curr_btn_lst == btns_middle) info_middle[curr_btn_i].show();
+            if (curr_btn_lst == btns_right) info_right[curr_btn_i].show();
+            
+            // handle button highlighting
+            btn_mask_template.hide();
+            if (curr_btn_lst) toggle_btn_highlight(curr_btn_lst[curr_btn_i]);
+            
+            // handle button (left) clicking
+            if (curr_btn_lst && is_clicked === 0)
+                toggle_btn(curr_btn_lst_i, curr_btn_i, curr_btn_lst[curr_btn_i]);
+
+            // remove all items under mouse when right clicked
+            if (is_clicked == 2) {
+                var items = [];
+                items = selector.get_under_mouse(wall_list, Game.mouse_x, Game.mouse_y, false);
+                for (var i in items) remove_item(items[i], wall_list, true);
+                items = selector.get_under_mouse(obstacle_list, Game.mouse_x, Game.mouse_y, false);
+                for (var i in items) remove_item(items[i], obstacle_list);
+                items = selector.get_under_mouse(agent_list, Game.mouse_x, Game.mouse_y, false);
+                for (var i in items) remove_item(items[i], agent_list);
+            }
+
+            // place selected item if left clicked
+            if (is_clicked == 0) {
+                if (Game.mouse_x >= 0 && Game.mouse_x <= 800 &&
+                    Game.mouse_y >= 0 && Game.mouse_y <= 600) {
+                    place_item();
+                }
+            }
+
+            //
+            //  Behaviors
+            //
+            
+            // make agents avoid each other, boundaries, and obstacles
+            for (var i in agent_list) {
+
+                // reset tag text
+                agent_list[i].tag.text = "";
+                
+                // always flee or magnet to mouse if mouse is very close
+                // ** will help with messed up agents **
+                var inner_vec = inner_behavior(agent_list[i]);
+                if (inner_vec === false || inner_vec === true)
+                    inner_vec = [0,0];
+                
+                // debug info for wall/boundary avoidance
+                var info_obst = null;
+                var info_wall = null;
+
+                // default to not separate from walls/boundaries
+                agent_list[i].is_separate = false;
+
+                // avoid walls and boundaries
+                //info_agnt = agent_list[i].avoid_obstacles(agent_list, 25, 5, 2, true, 4);
+                info_wall = agent_list[i].avoid_obstacles(wall_list, wall_radius, avoid_sight_length, 0, true, bhv_spd.avoid);
+                info_obst = agent_list[i].avoid_obstacles(boundary_push_pts, wall_radius,
+                                                          avoid_sight_length, 0, true, bhv_spd.avoid);
+                
+                // if cannot avoid, flee walls and boundaries
+                var flee_amt = 0;
+                var flees_vec = [0,0];
+                for (var j in wall_list) {
+                    var flee_vec = agent_list[i].flee2(wall_list[j], wall_radius, bhv_spd.flee);
+                    if (flee_vec[0] || flee_vec[1]) {
+                        flees_vec = Nickel.UTILITY.add_vector(flees_vec, flee_vec);
+                        flee_amt++;
+                    }
+                }
+                for (var j in boundary_push_pts) {
+                    var flee_vec = agent_list[i].flee2(boundary_push_pts[j], wall_radius, bhv_spd.flee);
+                    if (flee_vec[0] || flee_vec[1]) {
+                        flees_vec = Nickel.UTILITY.add_vector(flees_vec, flee_vec);
+                        flee_amt++;
+                    }
+                }
+                // get avg flee vector
+                if (flee_amt) {
+                    flees_vec[0] /= flee_amt;
+                    flees_vec[1] /= flee_amt;
+                    //flees_vec = Nickel.UTILITY.add_vector(flees_vec, agent_list[i].get_center());
+                    //agent_list[i].turn_to(flees_vec, false);//junk
+                }
+
+                // prepare all the debugging symbols
+                if (is_dbg_collisions) {
+
+                    // sights
+                    if (info_wall) {
+                        agent_list[i].dbg_sight = new SimpleLine(Game, info_wall[1].get_pos(), info_wall[1].get_end());
+                        agent_list[i].dbg_sight.stroke_color = '#750075';
+                        agent_list[i].dbg_sight.stroke_width = 1;
+                    } else if (info_obst) {
+                        agent_list[i].dbg_sight = new SimpleLine(Game, info_obst[1].get_pos(), info_obst[1].get_end());
+                        agent_list[i].dbg_sight.stroke_color = '#750075';
+                        agent_list[i].dbg_sight.stroke_width = 1;
+                    } else agent_list[i].dbg_sight = null;
+                    
+                    // collision circles
+                    agent_list[i].dbg_circles = [];
+                    if (info_wall[0] >= 2) {
+                        info_wall[2].stroke_color = '#5dff00';
+                        info_wall[2].stroke_width = 3;
+                        agent_list[i].dbg_circles.push(info_wall[2]);
+                    }
+                    if (info_obst[0] >= 2) {
+                        info_obst[2].stroke_color = '#5dff00';
+                        info_obst[2].stroke_width = 3;
+                        agent_list[i].dbg_circles.push(info_obst[2]);
+                    }
+
+                    // intersection points of sight
+                    if (info_wall.length > 2) {
+                        if (info_wall[3][3][1]) {
+                            var int_pt = new SimpleCircle(Game, 2);
+                            int_pt.set_tracker(int_pt.get_center());
+                            int_pt.set_center(info_wall[3][3][1]);
+                            int_pt.stroke_color = 'red';
+                            int_pt.stroke_width = 3;
+                            agent_list[i].dbg_circles.push(int_pt);
+                        }
+                        if (info_wall[3][3][2]) {
+                            var int_pt = new SimpleCircle(Game, 2);
+                            int_pt.set_tracker(int_pt.get_center());
+                            int_pt.set_center(info_wall[3][3][2]);
+                            int_pt.stroke_color = 'red';
+                            int_pt.stroke_width = 3;
+                            agent_list[i].dbg_circles.push(int_pt);
+                        }
+                    }
+                    if (info_obst.length > 2) {
+                        if (info_obst[3][3][1]) {
+                            var int_pt = new SimpleCircle(Game, 2);
+                            int_pt.set_tracker(int_pt.get_center());
+                            int_pt.set_center(info_obst[3][3][1]);
+                            int_pt.stroke_color = 'red';
+                            int_pt.stroke_width = 3;
+                            agent_list[i].dbg_circles.push(int_pt);
+                        }
+                        if (info_obst[3][3][2]) {
+                            var int_pt = new SimpleCircle(Game, 2);
+                            int_pt.set_tracker(int_pt.get_center());
+                            int_pt.set_center(info_obst[3][3][2]);
+                            int_pt.stroke_color = 'red';
+                            int_pt.stroke_width = 3;
+                            agent_list[i].dbg_circles.push(int_pt);
+                        }
+                    }
+                }
+
+                // separate if no avoidance/fleeing occurred
+                if ((!info_wall || info_wall==1 || info_wall[0]==1) &&
+                    (!info_obst || info_obst==1 || info_obst[0]==1) &&
+                    (flees_vec[0] == 0 && flees_vec[1] == 0)) {
+                    agent_list[i].is_separate = true;
+                } else {
+                    agent_list[i].tag.text += "avoiding, ";
+                }
+
+                // give priority to avoiding functions in this case
+                /*if (!agent_list[i].is_separate) {
+                    continue;
+                }*/
+                
+                // do boids if separate from walls, boundaries
+                var info_boid = agent_list[i].boids(agent_list,boids_rads.a,boids_rads.c,boids_rads.s,
+                                                    boids_wts.a,boids_wts.c,boids_wts.s,boids_wts.t,false,true);
+
+                // debug lines:
+                // total boid vectors
+                bline = [0,0];
+                bline[0] = info_boid[0][0] * 4;
+                bline[1] = info_boid[0][1] * 4;
+                var ctr = agent_list[i].get_center();
+                var boids_vec = Nickel.UTILITY.add_vector(ctr, bline);
+                var ptr = new SimpleLine(Game, ctr, boids_vec);
+                ptr.stroke_color = "#0087ff";
+                ptr.stroke_width = 2;
+                ptr.head = new SimpleCircle(Game, 2);
+                ptr.head.stroke_color = "#0087ff";
+                ptr.head.stroke_fill = "#0087ff";
+                ptr.update_more = function() {
+                    this.head.set_center(this.get_end());
+                    this.head.update();
+                }
+                agent_list[i].boids_line = ptr;
+                
+                // if end reached, switch behavior and sprite graphic
+                var reached_vec = [0,0];
+                if (agent_list[i].reached) {
+                    agent_list[i].set_pic(AGENTDATA_GREEN);
+                    reached_vec = reached_behavior(agent_list[i]);
+                }
+
+                // detailed tag info
+                if (info_boid[1][0] || info_boid[1][1]) agent_list[i].tag.text += "aligning, ";
+                if (info_boid[2][0] || info_boid[2][1]) agent_list[i].tag.text += "cohereing, ";
+                if (info_boid[3][0] || info_boid[3][1]) agent_list[i].tag.text += "separating, ";
+
+                // if end reached, don't follow path anymore, otherwise follow
+                var follow_vec = [0,0];
+                if (!agent_list[i].reached) {
+                    agent_list[i].tag.text += "following path, ";
+                    World.nav.apply_to_all(function(node){
+                        if (node.til.colliding_with(ctr)) {
+                            if (node.P)
+                                follow_vec = agent_list[i].seek3(node.P.til, bhv_spd.follow);
+                                //agent_list[i].seek2(node.P.til, bhv_spd.follow);//junk
+                                //agent_list[i].seek(node.P.til, agent_spd.max, agent_acc.med);
+                            else if (node.x==end_pt[0] && node.y==end_pt[1])
+                                agent_list[i].reached = true;
+                            else
+                                follow_vec = agent_list[i].seek3(end, bhv_spd.follow);
+                                //agent_list[i].seek(end, bhv_spd.follow, agent_acc.med);//junk
+                        }
+                    });
+                }
+
+                // add up all behavior vectors (and tags)
+                var steering_vec = [0,0];
+                if (info_wall[0] == 2)
+                    steering_vec = Nickel.UTILITY.add_vector(steering_vec, info_wall[4]);
+                if (info_obst[0] == 2)
+                    steering_vec = Nickel.UTILITY.add_vector(steering_vec, info_obst[4]);
+                if (inner_vec[0] || inner_vec[1])
+                    steering_vec = Nickel.UTILITY.add_vector(steering_vec, inner_vec);
+                else
+                    steering_vec = Nickel.UTILITY.add_vector(steering_vec, reached_vec);
+                steering_vec = Nickel.UTILITY.add_vector(steering_vec, info_boid[0]);
+                steering_vec = Nickel.UTILITY.add_vector(steering_vec, flees_vec);
+                steering_vec = Nickel.UTILITY.add_vector(steering_vec, follow_vec);
+
+                // normalize and add steering to current velocity
+                //steering_vec = Nickel.UTILITY.normalize_vector(steering_vec); //?
+                //steering_vec[0] *= agent_list[i].get_speed(); //?
+                //steering_vec[1] *= agent_list[i].get_speed(); //?
+                steering_vec = Nickel.UTILITY.add_vector(steering_vec, agent_list[i].get_velocity());
+                agent_list[i].set_velocity(steering_vec);
+
+                // debug tag
+                agent_list[i].tag.text = agent_list[i].tag.text.substring(0, agent_list[i].tag.text.length - 2);
+
+                // debug lines
+                if (is_dbg_collisions) {
+                    steering_vec[0] *= 3;
+                    steering_vec[1] *= 3;
+                    var dest = Nickel.UTILITY.add_vector(steering_vec, agent_list[i].get_center());
+                    var sline = new SimpleLine(Game, agent_list[i].get_center(), dest);
+                    sline.stroke_color = '#e89eff';
+                    sline.stroke_width = 3;
+                    agent_list[i].steer = sline;
+                }
+            }
+            
+            //
+            // Limits
+            //
+
+            // limit agent speed
+            for (var i in agent_list) {
+                agent_list[i].limit_speed(agent_limits.max_spd); // upper limit
+                agent_list[i].limit_speed(agent_limits.min_spd, false); // lower limit
+            }
+        }//end demo started
+        
+        //
+        // Update everything here:
+        //
+
+        // Grid
+        World.update();
+        
+        // Start & End
+        start.update();
+        end.update();
+        
+        // Walls
+        for (var i in wall_list) wall_list[i].update();
+        for (var i in obstacle_list) obstacle_list[i].update();
+        for (var i in boundary_list) boundary_list[i].update();
+        
+        // Agents
+        for (var i in agent_list) agent_list[i].update();
+
+        // Demo not started...
+        if (!started) {
+            start_screen.update();
+            if (selector.get_under_mouse([start_screen])[0] &&
+                Game.mouse_upped == 0) {
+                Game.reset_mouse_upped();
+                started = true;
+            }
+        }
+
+        // Debug
+        ms_inner_circle.update();
+        ms_outer_circle.update();
+        if (is_dbg_qtmode) {
+            
+            Game.clear();
+            qt_agts.viz(Game.context);
+            qt_obsts.viz(Game.context);
+            qt_walls.viz(Game.context);
+            if (is_dbg_tags) {
+                for (var i in agent_list) agent_list[i].tag.update();
+                ms_inner_circle.update();
+                ms_outer_circle.update();
+            } else if (is_dbg_collisions) {
+                ms_inner_circle.update();
+                ms_outer_circle.update();
+            }
+        }
+        if (is_dbg_collisions) {
+
+            for (var i in boundary_push_circles)
+                boundary_push_circles[i].update();
+
+            for (var i in wall_list)
+                wall_list[i].push_circle.update();
+
+            for (var i in agent_list) {
+
+                if (agent_list[i].dbg_sight)
+                    agent_list[i].dbg_sight.update();
+
+                if (agent_list[i].dbg_circles)
+                    for (var j in agent_list[i].dbg_circles)
+                        agent_list[i].dbg_circles[j].update();
+
+                if (agent_list[i].boids_line)
+                    agent_list[i].boids_line.update();
+
+                if (agent_list[i].steer)
+                    agent_list[i].steer.update();
+            }
+        }
+        
+        // UI
+        ui_bg.update();
+        for (var i in btns_left) btns_left[i].update();
+        for (var i in btns_middle) btns_middle[i].update();
+        for (var i in btns_right) btns_right[i].update();
+        for (var i in sticky_highlights) sticky_highlights[i].update();
+        btn_mask_template.update();
+        divider_top.update();
+        divider_left.update();
+        divider_right.update();
+        for (var i in info_left) info_left[i].update();
+        for (var i in info_middle) info_middle[i].update();
+        for (var i in info_right) info_right[i].update();
+    }
+    
+    //
+    // Start Game:
+    Game.run();
+</script>
